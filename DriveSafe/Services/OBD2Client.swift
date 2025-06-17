@@ -129,41 +129,41 @@ class OBD2Client: ObservableObject{
                case OBD2Constants.PID.rpm:
                    if data.count >= 4, let A = UInt8(data.prefix(2), radix: 16), let B = UInt8(data.dropFirst(2).prefix(2), radix: 16) {
                        let rpm = (256 * Int(A) + Int(B)) / 4
-                       print("🔧 RPM: \(rpm)")
+                       print("RPM: \(rpm)")
                    }
 
                case OBD2Constants.PID.speed:
                    if data.count >= 2, let speed = UInt8(data.prefix(2), radix: 16) {
-                       print("🚗 Speed: \(speed) km/h")
+                       print("Speed: \(speed) km/h")
                    }
 
                case OBD2Constants.PID.coolantTemp:
                    if data.count >= 2, let temp = UInt8(data.prefix(2), radix: 16) {
                        let coolant = Int(temp) - 40
-                       print("🌡️ Coolant Temp: \(coolant)°C")
+                       print("Coolant Temp: \(coolant)°C")
                    }
 
                default:
-                   print("📦 Unhandled PID: \(pid), data: \(data)")
+                   print("Unhandled PID: \(pid), data: \(data)")
                }
 
            case "43": // Mode 03 response: Confirmed DTCs
                let codes = decodeDTCs(from: pidOrData)
-               print("✅ Confirmed Trouble Codes: \(codes)")
+               print("Confirmed Trouble Codes: \(codes)")
 
            case "47": // Mode 07 response: Pending DTCs
                let codes = decodeDTCs(from: pidOrData)
-               print("⏳ Pending Trouble Codes: \(codes)")
+               print("Pending Trouble Codes: \(codes)")
 
            case "4A": // Mode 0A response: Permanent DTCs
                let codes = decodeDTCs(from: pidOrData)
-               print("🛠 Permanent Trouble Codes: \(codes)")
+               print("Permanent Trouble Codes: \(codes)")
 
            case "44": // Mode 04 response: Clear DTCs
-               print("🧹 Trouble codes cleared successfully.")
+               print("Trouble codes cleared successfully.")
 
            default:
-               print("⚠️ Unknown mode response: \(cleaned)")
+               print("Unknown mode response: \(cleaned)")
            }
         
     }
