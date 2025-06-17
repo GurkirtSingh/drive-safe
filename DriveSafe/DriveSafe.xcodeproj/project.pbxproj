@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		A34AAFD62E0205C1007C9AD3 /* OBD2Client.swift in Sources */ = {isa = PBXBuildFile; fileRef = A34AAFD52E020301007C9AD3 /* OBD2Client.swift */; };
+		A34AAFDB2E022BFE007C9AD3 /* OBD2Client+ScanDTC.swift in Sources */ = {isa = PBXBuildFile; fileRef = A34AAFDA2E022BEB007C9AD3 /* OBD2Client+ScanDTC.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -29,6 +30,7 @@
 
 /* Begin PBXFileReference section */
 		A34AAFD52E020301007C9AD3 /* OBD2Client.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OBD2Client.swift; sourceTree = "<group>"; };
+		A34AAFDA2E022BEB007C9AD3 /* OBD2Client+ScanDTC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OBD2Client+ScanDTC.swift"; sourceTree = "<group>"; };
 		A3BE95202DFFC8D800DB9004 /* DriveSafe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DriveSafe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A3BE952D2DFFC8D900DB9004 /* DriveSafeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DriveSafeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A3BE95372DFFC8D900DB9004 /* DriveSafeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DriveSafeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -80,6 +82,7 @@
 		A34AAFD42E0202F6007C9AD3 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				A34AAFDA2E022BEB007C9AD3 /* OBD2Client+ScanDTC.swift */,
 				A34AAFD52E020301007C9AD3 /* OBD2Client.swift */,
 			);
 			path = Services;
@@ -251,6 +254,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A34AAFD62E0205C1007C9AD3 /* OBD2Client.swift in Sources */,
+				A34AAFDB2E022BFE007C9AD3 /* OBD2Client+ScanDTC.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
