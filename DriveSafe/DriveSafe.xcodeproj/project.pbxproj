@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A34AAFD62E0205C1007C9AD3 /* OBD2Client.swift in Sources */ = {isa = PBXBuildFile; fileRef = A34AAFD52E020301007C9AD3 /* OBD2Client.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		A3BE952E2DFFC8D900DB9004 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,6 +28,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A34AAFD52E020301007C9AD3 /* OBD2Client.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OBD2Client.swift; sourceTree = "<group>"; };
 		A3BE95202DFFC8D800DB9004 /* DriveSafe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DriveSafe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A3BE952D2DFFC8D900DB9004 /* DriveSafeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DriveSafeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A3BE95372DFFC8D900DB9004 /* DriveSafeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DriveSafeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -72,9 +77,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		A34AAFD42E0202F6007C9AD3 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				A34AAFD52E020301007C9AD3 /* OBD2Client.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
 		A3BE95172DFFC8D800DB9004 = {
 			isa = PBXGroup;
 			children = (
+				A34AAFD42E0202F6007C9AD3 /* Services */,
 				A3BE95222DFFC8D800DB9004 /* DriveSafe */,
 				A3BE95302DFFC8D900DB9004 /* DriveSafeTests */,
 				A3BE953A2DFFC8D900DB9004 /* DriveSafeUITests */,
@@ -236,6 +250,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A34AAFD62E0205C1007C9AD3 /* OBD2Client.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
