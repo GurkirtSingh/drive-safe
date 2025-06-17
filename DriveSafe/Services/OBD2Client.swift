@@ -43,8 +43,14 @@ class OBD2Client: ObservableObject{
                 }
             case .failed(let error):
                 print("Connection failed: \(error)")
+                Task { @MainActor in
+                    self.disconnect()
+                }
             case .waiting(let error):
                 print( "waiting: \(error.localizedDescription)")
+                Task { @MainActor in
+                    self.disconnect()
+                }
             default:
                 print("Unknown state: \(state)")
             }
@@ -52,56 +58,69 @@ class OBD2Client: ObservableObject{
         connection?.start(queue: .main)
     }
     
-    func send(command: String){
-        guard let connection = connection else { return }
+    func disconnect(){
+        connection?.cancel()
+        connection = nil
+        isConnected = false
+        responseBuffer = Data()
+        print("disconnected from OBD2")
+    }
+    
+    func send(command: String) async throws -> String {
+        guard let connection = connection else {
+            throw NSError(domain: "OBD2Client", code: -1, userInfo: [NSLocalizedDescriptionKey: "No connection"])
+        }
+
         let cmd = command + "\r"
         let data = cmd.data(using: .utf8)!
-        
-        connection.send(content: data, completion: .contentProcessed { error in
-            if let error = error {
-                print("Send error: \(error)")
-                Task { @MainActor in
-                    self.isConnected = false
+
+        return try await withCheckedThrowingContinuation{ continuation in
+            connection.send(content: data, completion: .contentProcessed { sendError in
+                if let sendError = sendError {
+                    Task { @MainActor in
+                        self.disconnect()
+                    }
+                    continuation.resume(throwing: sendError)
+                    return
                 }
-            } else {
                 Task { @MainActor in
-                    self.readResponse()
+                    // After sending, start reading response
+                    self.readResponseForContinuation(continuation)
                 }
-            }
-        })
+            })
+        }
     }
-    func readResponse() {
+
+    private func readResponseForContinuation(_ continuation: CheckedContinuation<String, Error>) {
         connection?.receive(minimumIncompleteLength: 1, maximumLength: 1024) { data, _, isComplete, error in
             if let error = error {
-                print("Receive error: \(error.localizedDescription)")
+                continuation.resume(throwing: error)
                 return
             }
-            
-            // TODO: - Optimize by handling data async
+
             if let data = data {
                 Task { @MainActor in
                     self.responseBuffer.append(data)
-                    
+
                     if let fullString = String(data: self.responseBuffer, encoding: .utf8),
                        fullString.contains(OBD2Constants.Response.promptCharacter) {
-                        
-                        // Full response received
-                        self.parseResponse(fullString)
-                        
-                        // Clear buffer after parsing
+                        // Got full response, clear buffer and resume continuation
                         self.responseBuffer = Data()
+                        continuation.resume(returning: fullString)
+                        return
                     }
                 }
             }
-            
+
             if !isComplete {
                 Task { @MainActor in
-                    // Keep reading
-                    self.readResponse()
+                    // Keep reading until full response received
+                    self.readResponseForContinuation(continuation)
                 }
             }
         }
     }
+
     func parseResponse(_ response: String){
         print("Raw Response: \(response)")
         
