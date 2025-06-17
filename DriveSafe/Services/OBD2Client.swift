@@ -103,12 +103,102 @@ class OBD2Client: ObservableObject{
         }
     }
     func parseResponse(_ response: String){
+        print("Raw Response: \(response)")
+        
         let cleaned = response
             .replacingOccurrences(of: "\r", with: "")
             .replacingOccurrences(of: "\n", with: "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: OBD2Constants.Response.promptCharacter.description, with: "")
+            .replacingOccurrences(of: " ", with: "")
+            .uppercased()
         
-        print("Response: \(cleaned)")
+        guard cleaned.count >= 4 else{
+            print("Response too short")
+            return
+        }
+        
+        let mode = String(cleaned.prefix(2))
+           let pidOrData = String(cleaned.dropFirst(2))
+
+           switch mode {
+           case "41": // Mode 01 response (Live data)
+               let pid = String(pidOrData.prefix(2))
+               let data = String(pidOrData.dropFirst(2))
+
+               switch pid {
+               case OBD2Constants.PID.rpm:
+                   if data.count >= 4, let A = UInt8(data.prefix(2), radix: 16), let B = UInt8(data.dropFirst(2).prefix(2), radix: 16) {
+                       let rpm = (256 * Int(A) + Int(B)) / 4
+                       print("🔧 RPM: \(rpm)")
+                   }
+
+               case OBD2Constants.PID.speed:
+                   if data.count >= 2, let speed = UInt8(data.prefix(2), radix: 16) {
+                       print("🚗 Speed: \(speed) km/h")
+                   }
+
+               case OBD2Constants.PID.coolantTemp:
+                   if data.count >= 2, let temp = UInt8(data.prefix(2), radix: 16) {
+                       let coolant = Int(temp) - 40
+                       print("🌡️ Coolant Temp: \(coolant)°C")
+                   }
+
+               default:
+                   print("📦 Unhandled PID: \(pid), data: \(data)")
+               }
+
+           case "43": // Mode 03 response: Confirmed DTCs
+               let codes = decodeDTCs(from: pidOrData)
+               print("✅ Confirmed Trouble Codes: \(codes)")
+
+           case "47": // Mode 07 response: Pending DTCs
+               let codes = decodeDTCs(from: pidOrData)
+               print("⏳ Pending Trouble Codes: \(codes)")
+
+           case "4A": // Mode 0A response: Permanent DTCs
+               let codes = decodeDTCs(from: pidOrData)
+               print("🛠 Permanent Trouble Codes: \(codes)")
+
+           case "44": // Mode 04 response: Clear DTCs
+               print("🧹 Trouble codes cleared successfully.")
+
+           default:
+               print("⚠️ Unknown mode response: \(cleaned)")
+           }
+        
     }
+    
+    private func decodeDTCs(from hexString: String) -> [String] {
+        guard hexString.count >= 4 else { return [] }
+
+        var dtcs: [String] = []
+        let chars = Array(hexString)
+        
+        for i in stride(from: 0, to: chars.count, by: 4) {
+            guard i + 3 < chars.count else { break }
+
+            let A = chars[i]
+            let B = chars[i + 1]
+            let C = chars[i + 2]
+            let D = chars[i + 3]
+
+            let type: String
+            switch A {
+            case "0"..."3": type = "P0"
+            case "4"..."7": type = "C0"
+            case "8"..."B": type = "B0"
+            case "C"..."F": type = "U0"
+            default: type = "P0"
+            }
+
+            let code = "\(type)\(B)\(C)\(D)"
+            if code != "P0000" { // ignore padding
+                dtcs.append(code)
+            }
+        }
+
+        return dtcs
+    }
+
 }
 
