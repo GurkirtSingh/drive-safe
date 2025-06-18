@@ -20,6 +20,8 @@ internal import Combine
 /// Make sure to connect the client before sending commands.
 class OBD2Client: ObservableObject{
     
+    static let shared = OBD2Client()
+    
     @Published var isConnected:Bool = false
     @Published var diagonistTroubleCodes = []
     
