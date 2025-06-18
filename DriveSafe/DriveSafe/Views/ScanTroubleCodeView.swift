@@ -8,16 +8,17 @@
 import SwiftUI
 
 struct ScanTroubleCodeView: View {
+    
+    @State private var isConnected = false
     var body: some View {
-        Button{
-            // Implement OBD2 connection logic
-            print("Connecting OBD2")
-        } label: {
-            Text("Connect OBD2")
+        if isConnected {
+            Text("Connected")
                 .padding()
                 .foregroundStyle(Color.white)
                 .background(Color.accentColor)
                 .clipShape(Capsule())
+        }else {
+            ConnectOBD2View()
         }
     }
 }
