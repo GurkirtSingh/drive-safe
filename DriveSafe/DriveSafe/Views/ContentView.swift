@@ -13,7 +13,7 @@ struct ContentView: View {
             Tab("Scan", systemImage: "wrench"){
                 ScanTroubleCodeView()
             }
-        }.tint(.purple)
+        }
     }
 }
 

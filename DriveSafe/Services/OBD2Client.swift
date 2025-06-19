@@ -9,6 +9,10 @@ import Foundation
 import Network
 internal import Combine
 
+enum OBD2Error: Error{
+    case message(String)
+}
+
 /// `OBD2Client` is responsible for managing communication with an OBD-II adapter over Wi-Fi
 ///
 /// It provides methods to connect to the adapter (via Wi-Fi),
@@ -20,8 +24,9 @@ internal import Combine
 /// Make sure to connect the client before sending commands.
 class OBD2Client: ObservableObject{
     
+    static let shared = OBD2Client()
+    
     @Published var isConnected:Bool = false
-    @Published var diagonistTroubleCodes = []
     
     private var connection: NWConnection?
     private let host = NWEndpoint.Host(OBD2Constants.Connection.hostName) // Replace with actual IP
@@ -29,34 +34,59 @@ class OBD2Client: ObservableObject{
     
     private var responseBuffer = Data()
     
-    func connect() {
+    func connect() async throws {
         
         connection = NWConnection(host: host, port: port, using: .tcp)
         
-        connection?.stateUpdateHandler = { state in
-            switch state {
-            case .preparing:
-                print( "preparing")
-            case .ready:
-                print("Connected to OBD2 adapter")
-                Task { @MainActor in
-                    self.isConnected = true
+        try await withCheckedThrowingContinuation{ (continuation: CheckedContinuation<Void, Error>) in
+            connection?.stateUpdateHandler = { state in
+                switch state {
+                    
+                case .ready:
+                    print("Connected to OBD2 adapter")
+                    Task { @MainActor in
+                        self.isConnected = true
+                        do{
+                            await self.setup()
+                        }
+                    }
+                    continuation.resume(returning: ())
+                    
+                case .failed(let error):
+                    print("Connection failed: \(error)")
+                    Task { @MainActor in
+                        self.disconnect()
+                    }
+                    
+                case .waiting(let error):
+                    print( "waiting: \(error.localizedDescription)")
+                    continuation.resume(throwing: error)
+                    
+                default:
+                    break
                 }
-            case .failed(let error):
-                print("Connection failed: \(error)")
-                Task { @MainActor in
-                    self.disconnect()
-                }
-            case .waiting(let error):
-                print( "waiting: \(error.localizedDescription)")
-                Task { @MainActor in
-                    self.disconnect()
-                }
-            default:
-                print("Unknown state: \(state)")
             }
+            connection?.start(queue: .main)
         }
-        connection?.start(queue: .main)
+    }
+    
+    func setup() async {
+        let setupCommands = [
+            OBD2Constants.ATCommands.reset,
+            OBD2Constants.ATCommands.echoOff,
+            OBD2Constants.ATCommands.spacesOff,
+            OBD2Constants.ATCommands.headersOff,
+            OBD2Constants.ATCommands.selectProtocolAuto,
+            OBD2Constants.ATCommands.Protocols.protocol3
+        ]
+        for cmd in setupCommands{
+            do {
+                _ = try await sendCommand(command: cmd)
+            }catch{
+                print("Setup Error: \(error)")
+            }
+            usleep(100_000)
+        }
     }
     
     func disconnect(){
@@ -67,117 +97,70 @@ class OBD2Client: ObservableObject{
         print("disconnected from OBD2")
     }
     
-    func send(command: String) async throws -> String {
-        guard let connection = connection else {
-            throw NSError(domain: "OBD2Client", code: -1, userInfo: [NSLocalizedDescriptionKey: "No connection"])
+    func sendCommand(command: String) async throws -> [String]? {
+        guard let data = "\(command)\r".data(using: .ascii) else {
+            throw OBD2Error.message("Invalid Command Data")
         }
-        
-        let cmd = command + "\r"
-        let data = cmd.data(using: .utf8)!
+        do {
+            let response = try await sendAndRecieve(data: data)
+            return processResponse(response)
+        } catch {
+            throw error
+        }
+    }
+    
+    private func sendAndRecieve(data: Data) async throws -> String {
+        guard let connection = connection else {
+            throw NSError(domain: "OBD2Client", code: -1, userInfo: [NSLocalizedDescriptionKey: ErrorMessage.noConnection])
+        }
         
         return try await withCheckedThrowingContinuation{ continuation in
             connection.send(content: data, completion: .contentProcessed { sendError in
                 if let sendError = sendError {
-                    Task { @MainActor in
-                        self.disconnect()
-                    }
+                    print("Error Sending Command")
                     continuation.resume(throwing: sendError)
                     return
                 }
-                Task { @MainActor in
-                    // After sending, start reading response
-                    self.readResponseForContinuation(continuation)
+                
+                // recieve data
+                connection.receive(minimumIncompleteLength: 1, maximumLength: 1024) {data, _, _, error in
+                    if let error = error{
+                        print("Error Recieving Data")
+                        continuation.resume(throwing: error)
+                        return
+                    }
+                    
+                    guard let response = data, let responseString = String(data: response, encoding: .utf8) else {
+                        print("Invalid Data")
+                        continuation.resume(throwing: "Invaid Data" as! Error)
+                        return
+                    }
+                    continuation.resume(returning: responseString)
                 }
             })
         }
     }
     
-    private func readResponseForContinuation(_ continuation: CheckedContinuation<String, Error>) {
-        connection?.receive(minimumIncompleteLength: 1, maximumLength: 1024) { data, _, isComplete, error in
-            if let error = error {
-                continuation.resume(throwing: error)
-                return
-            }
-            
-            if let data = data {
-                Task { @MainActor in
-                    self.responseBuffer.append(data)
-                    
-                    if let fullString = String(data: self.responseBuffer, encoding: .utf8),
-                       fullString.contains(OBD2Constants.Response.promptCharacter) {
-                        // Got full response, clear buffer and resume continuation
-                        self.responseBuffer = Data()
-                        continuation.resume(returning: fullString)
-                        return
-                    }
-                }
-            }
-            
-            if !isComplete {
-                Task { @MainActor in
-                    // Keep reading until full response received
-                    self.readResponseForContinuation(continuation)
-                }
-            }
-        }
-    }
-    
-    func parseResponse(_ response: String) async throws -> String{
+    private func processResponse(_ response: String) -> [String]? {
         print("Raw Response: \(response)")
         
-        let cleaned = response
-            .replacingOccurrences(of: "\r", with: "")
-            .replacingOccurrences(of: "\n", with: "")
-            .replacingOccurrences(of: OBD2Constants.Response.promptCharacter.description, with: "")
-            .replacingOccurrences(of: " ", with: "")
-            .uppercased()
+        var lines = response.components(separatedBy: .newlines).filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
         
-        guard cleaned.count >= 4 else{
-            throw NSError(domain: "OBD2Client", code: -1, userInfo: [NSLocalizedDescriptionKey: "Response too short"])
+        guard !lines.isEmpty else {
+            print("Empty response lines")
+            return nil
         }
         
-        let mode = String(cleaned.prefix(2))
-        let pidOrData = String(cleaned.dropFirst(2))
-        
-        switch mode {
-        case "41": // Mode 01 response (Live data)
-            let pid = String(pidOrData.prefix(2))
-            let data = String(pidOrData.dropFirst(2))
-            
-            switch pid {
-            case OBD2Constants.PID.rpm:
-                if data.count >= 4, let A = UInt8(data.prefix(2), radix: 16), let B = UInt8(data.dropFirst(2).prefix(2), radix: 16) {
-                    let rpm = (256 * Int(A) + Int(B)) / 4
-                    print("RPM: \(rpm)")
-                }
-                
-            case OBD2Constants.PID.speed:
-                if data.count >= 2, let speed = UInt8(data.prefix(2), radix: 16) {
-                    print("Speed: \(speed) km/h")
-                }
-                
-            case OBD2Constants.PID.coolantTemp:
-                if data.count >= 2, let temp = UInt8(data.prefix(2), radix: 16) {
-                    let coolant = Int(temp) - 40
-                    print("Coolant Temp: \(coolant)°C")
-                }
-                
-            default:
-                print("Unhandled PID: \(pid), data: \(data)")
-            }
-            
-        case "43": // Mode 03 response: Confirmed DTCs
-            return pidOrData
-        case "47": // Mode 07 response: Pending DTCs
-            return pidOrData
-        case "4A": // Mode 0A response: Permanent DTCs
-            return pidOrData
-        case "44": // Mode 04 response: Clear DTCs
-            return "Trouble codes cleared successfully."
-        default:
-            throw NSError(domain: "OBD2Client", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unknown mode response: \(cleaned)"])
+        if lines.last?.contains(">") == true {
+            lines.removeLast()
         }
-        return ""
+        
+        if lines.first?.lowercased() == "no data" {
+            return nil
+        }
+        
+        return lines
+        
     }
     
 }
