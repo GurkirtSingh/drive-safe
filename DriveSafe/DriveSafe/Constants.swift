@@ -22,6 +22,10 @@ struct OBD2Constants {
         static let spacesOff = "ATS0"            // Spaces off
         static let headersOff = "ATH0"           // Headers off
         static let selectProtocolAuto = "ATSP0"  // Auto protocol select
+        static let describeProtocol = "ATDPN"  // Auto protocol select
+        enum Protocols {
+            static let protocol3 = "ATSP3"
+        }
     }
     
     /// Diagnostic commands defined by the OBD-II protocol.
@@ -53,3 +57,7 @@ struct OBD2Constants {
     }
 }
 
+struct ErrorMessage{
+    static let noConnection = "OBD2 Adopter is not connected. Make sure device is connected to OBD2 over Wi-Fi and vehicle is running."
+    static let noDTCsFound = "No Diagnostic Trouble Codes (DTCs) were found."
+}
