@@ -9,29 +9,16 @@ import Foundation
 
 extension OBD2Client {
     
-    func scanDTC() async{
+    func scanDTC() async throws -> [String]? {
         do {
-            let response = try await send(command: OBD2Constants.DiagnosticCommands.requestPendingDTCs)
-            guard response.isEmpty else {
-                print("Response is Empty")
-                return
-            }
-            diagonistTroubleCodes = parseTroubleCodes(response)
-            print("Codes: \(diagonistTroubleCodes)")
+            if let response = try await sendCommand(command: OBD2Constants.DiagnosticCommands.requestDTCs){
+                return parseTroubleCodes(response)
+            }else{ return nil }
             
-        } catch {
-            print("error: \(error)")
         }
     }
-    private func parseTroubleCodes(_ response: String) -> [String]{
-        // Remove spaces and drop the first 2 characters (mode and count)
-        let cleanResponse = response
-            .replacingOccurrences(of: "\r", with: "")
-            .replacingOccurrences(of: "\n", with: "")
-            .replacingOccurrences(of: OBD2Constants.Response.promptCharacter.description, with: "")
-            .replacingOccurrences(of: " ", with: "")
-            .uppercased()
-        let bytes = Array(cleanResponse.dropFirst(2)) // drop the mode byte
+    private func parseTroubleCodes(_ processedResponse: [String]) -> [String]{
+        let bytes = Array(processedResponse.dropFirst(2)) // drop the mode byte
 
         var codes: [String] = []
         
@@ -40,7 +27,7 @@ extension OBD2Client {
             guard i + 3 < bytes.count else { break }
             
             // Form a 4-character hex string representing 2 bytes
-            let hex = String(bytes[i...i+3])
+            let hex = bytes[i...i+3].joined()
             
             if let code = parseSingleDTC(from: hex), code != "P0000" {
                 codes.append(code)
