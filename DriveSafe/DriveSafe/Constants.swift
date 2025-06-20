@@ -60,4 +60,5 @@ struct OBD2Constants {
 struct ErrorMessage{
     static let noConnection = "OBD2 Adopter is not connected. Make sure device is connected to OBD2 over Wi-Fi and vehicle is running."
     static let noDTCsFound = "No Diagnostic Trouble Codes (DTCs) were found."
+    static let unexpected = "Unexpected Error!"
 }
