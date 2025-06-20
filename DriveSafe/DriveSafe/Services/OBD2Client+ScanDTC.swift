@@ -10,22 +10,18 @@ import Foundation
 extension OBD2Client {
     
     func scanDTC(_ type: TroubleCodeType) async throws -> [String]? {
-        var response: [String]?
-        do {
-            switch type {
-            case .pending:
-                response = try await sendCommand(command: OBD2Constants.DiagnosticCommands.requestPendingDTCs)
-            case .confirmed:
-                response = try await sendCommand(command: OBD2Constants.DiagnosticCommands.requestDTCs)
-            case .permanent:
-                response = try await sendCommand(command: OBD2Constants.DiagnosticCommands.requestPermanentDTCs)
-                
-                guard let response = response else {
-                    return nil
-                }
-                return parseTroubleCodes(response)
-            }
+        var rawResponse: [String]?
+        switch type {
+        case .pending:
+            rawResponse = try await sendCommand(command: OBD2Constants.DiagnosticCommands.requestPendingDTCs)
+        case .confirmed:
+            rawResponse = try await sendCommand(command: OBD2Constants.DiagnosticCommands.requestDTCs)
+        case .permanent:
+            rawResponse = try await sendCommand(command: OBD2Constants.DiagnosticCommands.requestPermanentDTCs)  
         }
-        return response
+        guard let response = rawResponse else {
+            return nil
+        }
+        return parseTroubleCodes(response)
     }
 }
