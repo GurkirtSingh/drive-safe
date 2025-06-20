@@ -9,43 +9,24 @@ import SwiftUI
 
 struct ScanTroubleCodeView: View {
     
-    @StateObject private var obdManager: OBD2Client = OBD2Client.shared
-    @State private var diagonistTroubleCodes: [String] = []
+    @StateObject private var troubleCodeManager: TroubleCodeManager = TroubleCodeManager(obd2Client: OBD2Client.shared)
     
     @State private var isAlertPresented: Bool = false
-    @State private var alertMessage: String = ""
     
     var body: some View {
-        if obdManager.isConnected {
+        if troubleCodeManager.isOBD2Connected {
             VStack{
-                if !diagonistTroubleCodes.isEmpty{
+                if !troubleCodeManager.troubleCodeList.isEmpty{
                     ScrollView{
-                        ForEach(diagonistTroubleCodes, id: \.self){ code in
-                            Text(code)
-                                .padding()
-                                .clipShape(.rect)
+                        ForEach(troubleCodeManager.troubleCodeList, id: \.self){ code in
+                            TroubleCodeRow(troubleCode: code)
                         }
                     }
                 }
                 Button{
                     Task{
-                        do{
-                            if let result = try await obdManager.scanDTC(){
-                                withAnimation{
-                                    diagonistTroubleCodes = result
-                                }
-                            } else{
-                                isAlertPresented = true
-                                alertMessage = ErrorMessage.noDTCsFound
-                            }
-                        } catch{
-                            isAlertPresented = true
-                            alertMessage = error.localizedDescription
-                        }
-                        
-                        
+                        await troubleCodeManager.scanCodes()
                     }
-                    
                 } label: {
                     Text("Scan Codes")
                         .padding()
@@ -58,7 +39,7 @@ struct ScanTroubleCodeView: View {
             .alert(isPresented: $isAlertPresented){
                 Alert(
                     title: Text("Warning") ,
-                    message: Text(alertMessage),
+                    message: Text(troubleCodeManager.errorMessage),
                     dismissButton: .default(Text("Ok"))
                 )
             }
