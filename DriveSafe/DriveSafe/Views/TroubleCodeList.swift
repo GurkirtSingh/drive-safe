@@ -8,11 +8,27 @@
 import SwiftUI
 
 struct TroubleCodeList: View {
+    var troubleCodes: [TroubleCode]
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        NavigationSplitView {
+            List(troubleCodes) { code in
+                NavigationLink{
+                    TroubleCodeDetail(troubleCode: code)
+                } label: {
+                    TroubleCodeRow(troubleCode: code)
+                }
+            }
+            .navigationTitle("Trouble Codes")
+        } detail: {
+            Text("Select a Trouble Code")
+        }
     }
 }
 
 #Preview {
-    TroubleCodeList()
+    TroubleCodeList(troubleCodes: [
+        .init(code: "P0420", status: .confirmed),
+        .init(code: "P0430", status: .pending),
+        .init(code: "P0240", status: .permanent)
+    ])
 }
