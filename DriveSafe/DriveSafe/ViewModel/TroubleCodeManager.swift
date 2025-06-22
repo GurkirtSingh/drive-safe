@@ -15,6 +15,7 @@ class TroubleCodeManager: ObservableObject{
     @Published var isOBD2Connected: Bool = false
     @Published var isScanning: Bool = false
     @Published var errorMessage: String = ErrorMessage.unexpected
+    @Published var isDTCCleared: Bool = false
     
     private var troubleCodes: [String: TroubleCode] = [:]
     // get list of trouble codes
@@ -64,6 +65,14 @@ class TroubleCodeManager: ObservableObject{
         isScanning = false
     }
     
+    private func setIsDTCCleared(){
+        isDTCCleared = true
+    }
+    
+    private func resetIsDTCCleared(){
+        isDTCCleared = false
+    }
+    
     func scanCodes() async {
         
         resetTroubleCodeList()
@@ -90,5 +99,21 @@ class TroubleCodeManager: ObservableObject{
             setErrorMessage(message: error.localizedDescription)
         }
         resetIsScanning()
+    }
+    
+    func clearCodes() async {
+        clearErrorMessage()
+        do{
+            let clear = try await obd2Client.clearDTC()
+            if clear{
+                setIsDTCCleared()
+            } else{
+                resetIsDTCCleared()
+                setErrorMessage(message: "Failed to clear DTCs.")
+            }
+        }catch {
+            resetIsDTCCleared()
+            setErrorMessage(message: error.localizedDescription)
+        }
     }
 }
