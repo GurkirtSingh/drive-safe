@@ -12,6 +12,7 @@ struct ScanTroubleCodeView: View {
     @StateObject private var troubleCodeManager: TroubleCodeManager = TroubleCodeManager(obd2Client: OBD2Client.shared)
     
     @State private var isAlertPresented: Bool = false
+    @State private var showClearCodesConfirmation: Bool = false
     
     var body: some View {
         if troubleCodeManager.isOBD2Connected {
@@ -33,6 +34,24 @@ struct ScanTroubleCodeView: View {
                         .foregroundStyle(Color.white)
                         .background(Color.accentColor)
                         .clipShape(Capsule())
+                }
+                Button{
+                    showClearCodesConfirmation = true
+                } label: {
+                    Text("Clear Codes")
+                        .padding()
+                        .foregroundStyle(Color.white)
+                        .background(Color.secondary)
+                        .clipShape(Capsule())
+                }
+                .confirmationDialog("Clear DTCs?", isPresented: $showClearCodesConfirmation, titleVisibility: .visible) {
+                    Button("Clear", role: .destructive){
+                        Task{
+                            await troubleCodeManager.clearCodes()
+                        }
+                    }
+                } message: {
+                    Text(ConfirmationMessgae.clear)
                 }
             }
             .padding(.bottom, 50)
