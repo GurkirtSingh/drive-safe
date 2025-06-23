@@ -62,3 +62,7 @@ struct ErrorMessage{
     static let noDTCsFound = "No Diagnostic Trouble Codes (DTCs) were found."
     static let unexpected = "Unexpected Error!"
 }
+
+struct ConfirmationMessgae{
+static let clear = "Are you sure you want to clear all trouble codes? This will reset engine light and may cause performance issues."
+}
