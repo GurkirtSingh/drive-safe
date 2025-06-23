@@ -16,6 +16,7 @@ class TroubleCodeManager: ObservableObject{
     @Published var isScanning: Bool = false
     @Published var errorMessage: String = ErrorMessage.unexpected
     @Published var isDTCCleared: Bool = false
+    @Published var isAlertPresented: Bool = false
     
     private var troubleCodes: [String: TroubleCode] = [:]
     // get list of trouble codes
@@ -73,6 +74,10 @@ class TroubleCodeManager: ObservableObject{
         isDTCCleared = false
     }
     
+    private func setIsAlertPresented(){
+        isAlertPresented = true
+    }
+    
     func scanCodes() async {
         
         resetTroubleCodeList()
@@ -96,6 +101,7 @@ class TroubleCodeManager: ObservableObject{
                 }
             }
         } catch {
+            setIsAlertPresented()
             setErrorMessage(message: error.localizedDescription)
         }
         resetIsScanning()
@@ -109,10 +115,12 @@ class TroubleCodeManager: ObservableObject{
                 setIsDTCCleared()
             } else{
                 resetIsDTCCleared()
+                setIsAlertPresented()
                 setErrorMessage(message: "Failed to clear DTCs.")
             }
         }catch {
             resetIsDTCCleared()
+            setIsAlertPresented()
             setErrorMessage(message: error.localizedDescription)
         }
     }
